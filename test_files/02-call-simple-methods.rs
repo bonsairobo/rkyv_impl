@@ -1,0 +1,45 @@
+use rkyv::{
+    ser::{
+        serializers::{
+            AlignedSerializer, AllocScratch, CompositeSerializer, FallbackScratch, HeapScratch,
+        },
+        Serializer,
+    },
+    AlignedVec, Archive, Infallible, Serialize,
+};
+use rkyv_impl::archive_impl;
+
+#[derive(Archive, Serialize)]
+pub struct Foo {
+    field: Vec<u32>,
+}
+
+#[archive_impl]
+impl Foo {
+    fn get_slice(&self) -> &[u32] {
+        &self.field
+    }
+
+    fn get_first(&self) -> Option<&u32> {
+        self.field.first()
+    }
+}
+
+fn main() {
+    let foo = Foo {
+        field: vec![1, 2, 3],
+    };
+
+    // Serialize.
+    let buf = AlignedVec::new();
+    let scratch = FallbackScratch::new(HeapScratch::<0>::new(), AllocScratch::new());
+    let mut serializer = CompositeSerializer::new(AlignedSerializer::new(buf), scratch, Infallible);
+    serializer.serialize_value(&foo).unwrap();
+    let (serializer, _, _) = serializer.into_components();
+    let buf = serializer.into_inner();
+
+    let archived_foo = unsafe { rkyv::archived_root::<Foo>(&buf) };
+
+    assert_eq!(archived_foo.get_slice(), foo.get_slice());
+    assert_eq!(archived_foo.get_first(), foo.get_first());
+}

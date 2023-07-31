@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> test_files/04-unexpected-input.rs:7:1
+  |
+7 | #[archive_impl(blah)]
+  | ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: message: No attribute inputs expected
