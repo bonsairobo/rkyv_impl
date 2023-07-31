@@ -10,7 +10,7 @@ proc-macro = true
 
 [dependencies]
 quote = "1"
-syn = { version = "2", features = ["full"] }
+syn = { version = "2", features = ["extra-traits", "full"] }
 
 [dev-dependencies]
 rkyv = "0.7"

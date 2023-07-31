@@ -8,13 +8,11 @@ pub fn archive_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     assert!(attr.is_empty(), "No attribute inputs expected");
 
     let orig_impl = parse_macro_input!(item as ItemImpl);
-    let orig_name = match &*orig_impl.self_ty {
-        Type::Path(path) => path.path.segments.last().unwrap().ident.clone(),
+    let archived_path = match &*orig_impl.self_ty {
+        Type::Path(path) => replace_last_path_segment(&path.path),
         _ => unimplemented!(),
     };
-    let archived_name = format!("Archived{orig_name}");
-    let archived_ident = syn::Ident::new(&archived_name, orig_name.span());
-    let (impl_generics, ty_generics, where_clause) = orig_impl.generics.split_for_impl();
+    let (impl_generics, _ty_generics, where_clause) = orig_impl.generics.split_for_impl();
     let impl_items = &orig_impl.items;
 
     // TODO: is there a way to avoid duplication here?
@@ -22,7 +20,7 @@ pub fn archive_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {
             #orig_impl
 
-            impl #impl_generics #trait_path for #archived_ident #ty_generics #where_clause {
+            impl #impl_generics #trait_path for #archived_path #where_clause {
                 #(#impl_items)*
             }
         }
@@ -30,10 +28,19 @@ pub fn archive_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {
             #orig_impl
 
-            impl #impl_generics #archived_ident #ty_generics #where_clause {
+            impl #impl_generics #archived_path #where_clause {
                 #(#impl_items)*
             }
         }
     }
     .into()
+}
+
+fn replace_last_path_segment(p: &syn::Path) -> syn::Path {
+    let orig_ident = &p.segments.last().unwrap().ident;
+    let archived_name = format!("Archived{orig_ident}");
+    let archived_ident = syn::Ident::new(&archived_name, orig_ident.span());
+    let mut archived_path = p.clone();
+    archived_path.segments.last_mut().unwrap().ident = archived_ident;
+    archived_path
 }
