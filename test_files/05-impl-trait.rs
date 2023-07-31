@@ -18,11 +18,8 @@ trait GetSlice<T> {
     fn get_slice(&self) -> &[T];
 }
 
-#[archive_impl]
-impl<T> GetSlice<T> for Foo<T>
-where
-    T: Archive<Archived = T>,
-{
+#[archive_impl(bounds(T: Archive<Archived = T>))]
+impl<T> GetSlice<T> for Foo<T> {
     fn get_slice(&self) -> &[T] {
         &self.field
     }

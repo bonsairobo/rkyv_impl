@@ -4,4 +4,4 @@ error: custom attribute panicked
 7 | #[archive_impl(blah)]
   | ^^^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: No attribute inputs expected
+  = help: message: Unsupported meta `blah`: meta can only be structure list `bound(...)`

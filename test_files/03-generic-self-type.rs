@@ -7,20 +7,30 @@ use rkyv::{
     },
     AlignedVec, Archive, Infallible, Serialize,
 };
-use rkyv_impl::archive_impl;
+use rkyv_impl::*;
 
 #[derive(Archive, Serialize)]
 pub struct Foo<T> {
     field: Vec<T>,
 }
 
-#[archive_impl]
-impl<T> Foo<T>
+#[archive_impl(bounds(T: Archive<Archived = T>))]
+impl<T: Clone> Foo<T>
 where
-    T: Archive<Archived = T>,
+    T: Eq,
 {
     fn get_slice(&self) -> &[T] {
         &self.field
+    }
+
+    // Show that the generated impl also inherits the `T: Eq` bound.
+    fn element_eq(&self, index: usize, value: &T) -> bool {
+        self.field[index].eq(value)
+    }
+
+    // Show that the generated impl also inherits the `T: Clone` bound.
+    fn clone_element(&self, index: usize) -> T {
+        self.field[index].clone()
     }
 }
 
