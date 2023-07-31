@@ -43,5 +43,5 @@ fn main() {
 
     let archived_foo = unsafe { rkyv::archived_root::<Foo<u32>>(&buf) };
 
-    assert_eq!(archived_foo.get_slice(), foo.get_slice());
+    assert_eq!(GetSlice::get_slice(archived_foo), GetSlice::get_slice(&foo));
 }
