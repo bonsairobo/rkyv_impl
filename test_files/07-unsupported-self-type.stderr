@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> test_files/07-unsupported-self-type.rs:7:1
+  |
+7 | #[archive_impl]
+  | ^^^^^^^^^^^^^^^
+  |
+  = help: message: `impl & Foo` unsupported: self type can only be syn::Type::Path

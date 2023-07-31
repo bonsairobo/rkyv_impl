@@ -7,4 +7,5 @@ fn tests() {
     t.compile_fail("test_files/04-unexpected-input.rs");
     t.pass("test_files/05-impl-trait.rs");
     t.pass("test_files/06-parse-external-path.rs");
+    t.compile_fail("test_files/07-unsupported-self-type.rs");
 }

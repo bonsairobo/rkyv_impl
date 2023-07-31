@@ -10,7 +10,10 @@ pub fn archive_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let orig_impl = parse_macro_input!(item as ItemImpl);
     let archived_path = match &*orig_impl.self_ty {
         Type::Path(path) => replace_last_path_segment(&path.path),
-        _ => unimplemented!(),
+        unsupported_self_ty => {
+            let self_ty_verbatim = quote! { #unsupported_self_ty };
+            panic!("`impl {self_ty_verbatim}` unsupported: self type can only be syn::Type::Path")
+        }
     };
     let (impl_generics, _ty_generics, where_clause) = orig_impl.generics.split_for_impl();
     let impl_items = &orig_impl.items;
