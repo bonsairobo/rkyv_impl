@@ -23,4 +23,8 @@ impl<T> Foo<T> {
         self.elements.iter().cloned().sum()
     }
 }
+
+fn use_generated_method(foo: &ArchivedFoo<u32>) {
+    let _ = foo.sum::<u32>();
+}
 ```
