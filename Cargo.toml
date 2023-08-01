@@ -1,7 +1,10 @@
 [package]
 name = "rkyv_impl"
 version = "0.1.0"
+authors = ["Duncan Fairbanks <duncanfairbanks6@gmail.com>"]
 edition = "2021"
+license = "MIT/Apache-2.0"
+description = "Macro for `rkyv` users to implement methods on `Foo` and `ArchivedFoo` in a single `impl` block."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
