@@ -1,6 +1,6 @@
 # rkyv_impl
 
-Copy `impl Foo` blocks into `impl ArchivedFoo`.
+Implement methods for `Foo` and `ArchivedFoo` in a single `impl` block.
 
 ```rust
 use rkyv::Archive;

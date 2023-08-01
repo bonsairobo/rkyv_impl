@@ -1,4 +1,4 @@
-//! Copy `impl Foo` blocks into `impl ArchivedFoo`.
+//! Implement methods for `Foo` and `ArchivedFoo` in a single `impl` block.
 //!
 //! ```
 //! use rkyv::Archive;
