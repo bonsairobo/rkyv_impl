@@ -12,7 +12,7 @@ struct Foo<T> {
     elements: Vec<T>
 }
 
-#[archive_impl(bounds(T: Archive))]
+#[archive_impl(transform_bounds(T))]
 impl<T> Foo<T> {
     // Notice that the where clause is transformed so that
     // `T` is replaced with `T::Archived` in the generated `impl`.
