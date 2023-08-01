@@ -9,4 +9,5 @@ fn tests() {
     t.pass("test_files/06-parse-external-path.rs");
     t.compile_fail("test_files/07-unsupported-self-type.rs");
     t.pass("test_files/08-nonarchive-generic.rs");
+    t.pass("test_files/09-method-bounds.rs");
 }
