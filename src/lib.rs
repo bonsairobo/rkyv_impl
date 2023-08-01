@@ -35,7 +35,7 @@ use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{
     parse::Parser, parse_macro_input, parse_quote, punctuated::Punctuated, visit_mut::VisitMut,
-    ImplItem, ItemImpl, Meta, Token, Type, WhereClause, WherePredicate,
+    ImplItem, ImplItemFn, ItemImpl, Meta, Token, Type, WhereClause, WherePredicate,
 };
 
 /// Supports the same arguments as [`macro@archive_impl`], but applies to
@@ -156,45 +156,50 @@ fn replace_last_path_segment(p: &syn::Path) -> syn::Path {
 fn augment_methods(augmented_items: &mut [ImplItem]) -> syn::Result<()> {
     for item in augmented_items {
         if let ImplItem::Fn(fn_item) = item {
-            let mut add_bounds = Vec::new();
-            let mut transform_params = Vec::new();
-            for attr in &fn_item.attrs {
-                if !attr.path().is_ident("archive_method") {
-                    continue;
-                }
-
-                match &attr.meta {
-                    Meta::List(meta_list) => {
-                        let mut arg_metas = Vec::new();
-                        parse_argument_metas(meta_list.tokens.clone().into(), &mut arg_metas)?;
-
-                        for meta in arg_metas {
-                            if meta.path().is_ident("transform_bounds") {
-                                parse_transform_bounds(&meta, &mut transform_params)?;
-                            } else if meta.path().is_ident("bounds") {
-                                parse_bounds(&meta, &mut add_bounds)?;
-                            } else {
-                                let meta_path = meta.path().get_ident().unwrap();
-                                panic!("Unsupported argument `{meta_path}`");
-                            }
-                        }
-                    }
-                    unsupported_meta => {
-                        let meta_verbatim = quote! { #unsupported_meta };
-                        panic!(
-                            "Unsupported meta `{meta_verbatim}`: meta can only be structure list `archive_method(...)`"
-                        );
-                    }
-                }
-            }
-            for param in &transform_params {
-                add_bounds.push(parse_quote! { #param: Archive });
-            }
-            let method_where = &mut fn_item.sig.generics.where_clause;
-            transform_where_clause(&transform_params, method_where);
-            *method_where = add_bounds_to_where_clause(std::mem::take(method_where), add_bounds);
+            augment_method(fn_item)?;
         }
     }
+    Ok(())
+}
+
+fn augment_method(fn_item: &mut ImplItemFn) -> syn::Result<()> {
+    let mut add_bounds = Vec::new();
+    let mut transform_params = Vec::new();
+    for attr in &fn_item.attrs {
+        if !attr.path().is_ident("archive_method") {
+            continue;
+        }
+
+        match &attr.meta {
+            Meta::List(meta_list) => {
+                let mut arg_metas = Vec::new();
+                parse_argument_metas(meta_list.tokens.clone().into(), &mut arg_metas)?;
+
+                for meta in arg_metas {
+                    if meta.path().is_ident("transform_bounds") {
+                        parse_transform_bounds(&meta, &mut transform_params)?;
+                    } else if meta.path().is_ident("bounds") {
+                        parse_bounds(&meta, &mut add_bounds)?;
+                    } else {
+                        let meta_path = meta.path().get_ident().unwrap();
+                        panic!("Unsupported argument `{meta_path}`");
+                    }
+                }
+            }
+            unsupported_meta => {
+                let meta_verbatim = quote! { #unsupported_meta };
+                panic!(
+                        "Unsupported meta `{meta_verbatim}`: meta can only be structure list `archive_method(...)`"
+                    );
+            }
+        }
+    }
+    for param in &transform_params {
+        add_bounds.push(parse_quote! { #param: Archive });
+    }
+    let method_where = &mut fn_item.sig.generics.where_clause;
+    transform_where_clause(&transform_params, method_where);
+    *method_where = add_bounds_to_where_clause(std::mem::take(method_where), add_bounds);
     Ok(())
 }
 
