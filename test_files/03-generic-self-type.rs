@@ -14,22 +14,29 @@ pub struct Foo<T> {
     field: Vec<T>,
 }
 
-#[archive_impl(bounds(T: Archive<Archived = T>))]
-impl<T: Clone> Foo<T>
-where
-    T: Eq,
-{
+#[archive_impl(transform_bounds(T), bounds(T: Archive<Archived=T>))]
+impl<T> Foo<T> {
+    #[archive_method(bounds(T: Archive<Archived=T>))]
     fn get_slice(&self) -> &[T] {
         &self.field
     }
 
-    // Show that the generated impl also inherits the `T: Eq` bound.
-    fn element_eq(&self, index: usize, value: &T) -> bool {
+    // Show that the generated impl also inherits the `T::Archived: Eq` bound.
+    #[archive_method(transform_bounds(T))]
+    fn element_eq(&self, index: usize, value: &T) -> bool
+    where
+        T: Eq,
+    {
         self.field[index].eq(value)
     }
 
-    // Show that the generated impl also inherits the `T: Clone` bound.
-    fn clone_element(&self, index: usize) -> T {
+    // Show that the generated impl also inherits the `T::Archived: Clone`
+    // bound.
+    #[archive_method(transform_bounds(T))]
+    fn clone_element(&self, index: usize) -> T
+    where
+        T: Clone,
+    {
         self.field[index].clone()
     }
 }

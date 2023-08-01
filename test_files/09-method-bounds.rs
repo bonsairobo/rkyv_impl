@@ -15,9 +15,9 @@ struct Foo<T> {
     elements: Vec<T>,
 }
 
-#[archive_impl(bounds(T: Archive))]
+#[archive_impl(transform_bounds(T))]
 impl<T> Foo<T> {
-    #[archive_method(bounds(T::Archived: Clone, S: Sum<T::Archived>))]
+    #[archive_method(transform_bounds(T))]
     fn sum<S>(&self) -> S
     where
         T: Clone,

@@ -1,6 +1,6 @@
 # rkyv_impl
 
-Copy `impl T` blocks into `impl ArchivedT`.
+Copy `impl Foo` blocks into `impl ArchivedFoo`.
 
 ```rust
 use rkyv::Archive;
@@ -14,7 +14,9 @@ struct Foo<T> {
 
 #[archive_impl(bounds(T: Archive))]
 impl<T> Foo<T> {
-    #[archive_method(bounds(T::Archived: Clone, S: Sum<T::Archived>))]
+    // Notice that the where clause is transformed so that
+    // `T` is replaced with `T::Archived` in the generated `impl`.
+    #[archive_method(transform_bounds(T))]
     fn sum<S>(&self) -> S
     where
         T: Clone,
@@ -25,6 +27,7 @@ impl<T> Foo<T> {
 }
 
 fn use_generated_method(foo: &ArchivedFoo<u32>) {
+    // Call the generated method!
     let _ = foo.sum::<u32>();
 }
 ```
