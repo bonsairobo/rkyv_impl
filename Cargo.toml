@@ -5,6 +5,11 @@ authors = ["Duncan Fairbanks <duncanfairbanks6@gmail.com>"]
 edition = "2021"
 license = "MIT/Apache-2.0"
 description = "Macro for `rkyv` users to implement methods on `Foo` and `ArchivedFoo` in a single `impl` block."
+homepage = "https://github.com/bonsairobo/rkyv_impl"
+repository = "https://github.com/bonsairobo/rkyv_impl"
+readme = "README.md"
+categories = ["encoding"]
+keywords = ["macro", "rkyv"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
