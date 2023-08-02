@@ -6,7 +6,7 @@ pub struct Foo<T> {
     field: Vec<T>,
 }
 
-#[archive_impl(bounds(T: Archive<Archived = T>))]
+#[archive_impl(add_bounds(T: Archive<Archived = T>))]
 impl<T> Foo<T> {
     fn get_slice(&self) -> &[T] {
         &self.field

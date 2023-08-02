@@ -66,8 +66,8 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// - `transform_bounds(T)`: Adds a `T: Archive` bound and transforms `T` into
 ///   `T::Archived` in all trait bounds on the `impl`. Can take a list of
 ///   multiple parameters, like `transform_bounds(T, S)`.
-/// - `bounds(...)`: Adds bounds to the generated `impl`. Takes a list of
-///   predicates, for example: `bounds(T: PartialEq, S: Hash)`.
+/// - `add_bounds(...)`: Adds bounds to the generated `impl`. Takes a list of
+///   predicates, for example: `add_bounds(T: PartialEq, S: Hash)`.
 ///
 /// Note that generated bounds are only added to the `where` clause on the
 /// `impl`. To transform or add bounds to specific methods, see
@@ -141,7 +141,7 @@ impl ArgumentsBuilder {
     fn try_add_meta(&mut self, meta: &Meta) -> syn::Result<()> {
         if meta.path().is_ident("transform_bounds") {
             parse_transform_bounds(meta, &mut self.transform_params)?;
-        } else if meta.path().is_ident("bounds") {
+        } else if meta.path().is_ident("add_bounds") {
             parse_bounds(meta, &mut self.add_bounds)?;
         } else {
             let meta_path = meta.path().get_ident().unwrap();
@@ -278,7 +278,9 @@ fn parse_bounds(meta: &Meta, add_bounds: &mut Vec<WherePredicate>) -> syn::Resul
         }
         unsupported_meta => {
             let meta_verbatim = quote! { #unsupported_meta };
-            panic!("Unsupported `{meta_verbatim}`: meta can only be structured list `bounds(...)`");
+            panic!(
+                "Unsupported `{meta_verbatim}`: meta can only be structured list `add_bounds(...)`"
+            );
         }
     }
 }
