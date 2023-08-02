@@ -63,16 +63,98 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// Decorates an `impl T` (or `impl FooTrait for T`) block and generates an
 /// equivalent `impl T::Archived`.
 ///
-/// Arguments to this attribute macro include:
-/// - `transform_bounds(T)`: Adds a `T: Archive` bound and transforms `T` into
-///   `T::Archived` in all trait bounds on the `impl`. Can take a list of
-///   multiple parameters, like `transform_bounds(T, S)`.
-/// - `add_bounds(...)`: Adds bounds to the generated `impl`. Takes a list of
-///   predicates, for example: `add_bounds(T: PartialEq, S: Hash)`.
+/// The original `impl` block is not modified, but the generated block can be
+/// modified according to the macro arguments.
 ///
 /// Note that generated bounds are only added to the `where` clause on the
 /// `impl`. To transform or add bounds to specific methods, see
 /// [`macro@archive_method`].
+///
+/// ### `transform_bounds`
+///
+/// For each given parameter `T`, adds a `T: Archive` bound and transforms `T`
+/// into `T::Archived` in all pre-existing trait bounds on the `impl`. Can take
+/// a list of multiple parameters, like `transform_bounds(T, S)`.
+///
+/// For example:
+/// ```
+/// # use rkyv_impl::*;
+/// # use rkyv::Archive;
+/// # #[derive(Archive)]
+/// # struct Foo<T> {
+/// #     data1: T,
+/// #     data2: T,
+/// # }
+/// #
+/// #[archive_impl(transform_bounds(T))]
+/// impl<T: PartialEq> Foo<T> {
+///     fn data_equal(&self) -> bool {
+///         self.data1 == self.data2
+///     }
+/// }
+/// ```
+///
+/// generates the additional code:
+///
+/// ```
+/// # use rkyv::Archive;
+/// # #[derive(Archive)]
+/// # struct Foo<T> {
+/// #     data1: T,
+/// #     data2: T,
+/// # }
+/// #
+/// impl<T> ArchivedFoo<T>
+/// where
+///     T: Archive,
+///     T::Archived: PartialEq,
+/// {
+///     fn data_equal(&self) -> bool {
+///         self.data1 == self.data2
+///     }
+/// }
+/// ```
+///
+/// ### `add_bounds`
+///
+/// Adds bounds to the generated `impl`. Takes a list of predicates, for
+/// example: `add_bounds(T: PartialEq, S: Hash)`.
+///
+/// For example:
+/// ```
+/// # use rkyv_impl::*;
+/// # use rkyv::Archive;
+/// # #[derive(Archive)]
+/// # struct Foo<T> {
+/// #     data: Vec<T>,
+/// # }
+/// #
+/// #[archive_impl(add_bounds(T: Archive<Archived=T>))]
+/// impl<T> Foo<T> {
+///     fn get_slice(&self) -> &[T] {
+///         &self.data
+///     }
+/// }
+/// ```
+///
+/// generates the additional code:
+///
+/// ```
+/// # use rkyv::Archive;
+/// # #[derive(Archive)]
+/// # struct Foo<T> {
+/// #     data: Vec<T>,
+/// # }
+/// #
+/// impl<T> ArchivedFoo<T>
+/// where
+///     T: Archive<Archived=T>,
+/// {
+///     fn get_slice(&self) -> &[T] {
+///         &self.data
+///     }
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let impl_args = match Arguments::parse(args) {
