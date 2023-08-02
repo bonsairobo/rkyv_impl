@@ -74,7 +74,7 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// [`macro@archive_method`].
 #[proc_macro_attribute]
 pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
-    let args = match Arguments::parse(args) {
+    let impl_args = match Arguments::parse(args) {
         Ok(a) => a,
         Err(e) => {
             return e.to_compile_error().into();
@@ -88,10 +88,13 @@ pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let mut archived_impl = orig_impl.clone();
     replace_self_type(&mut archived_impl.self_ty);
     transform_where_clause(
-        &args.transform_params,
+        &impl_args.transform_params,
         &mut archived_impl.generics.where_clause,
     );
-    add_bounds_to_where_clause(args.add_bounds, &mut archived_impl.generics.where_clause);
+    add_bounds_to_where_clause(
+        impl_args.add_bounds,
+        &mut archived_impl.generics.where_clause,
+    );
     if let Err(e) = augment_methods(&mut archived_impl.items) {
         return e.to_compile_error().into();
     }
@@ -129,17 +132,17 @@ impl ArgumentsBuilder {
             let mut arg_metas = Vec::new();
             parse_argument_metas(args, &mut arg_metas)?;
             for meta in arg_metas {
-                self.try_add_meta(meta)?;
+                self.try_add_meta(&meta)?;
             }
         }
         Ok(())
     }
 
-    fn try_add_meta(&mut self, meta: Meta) -> syn::Result<()> {
+    fn try_add_meta(&mut self, meta: &Meta) -> syn::Result<()> {
         if meta.path().is_ident("transform_bounds") {
-            parse_transform_bounds(&meta, &mut self.transform_params)?;
+            parse_transform_bounds(meta, &mut self.transform_params)?;
         } else if meta.path().is_ident("bounds") {
-            parse_bounds(&meta, &mut self.add_bounds)?;
+            parse_bounds(meta, &mut self.add_bounds)?;
         } else {
             let meta_path = meta.path().get_ident().unwrap();
             panic!("Unsupported argument `{meta_path}`");
@@ -159,7 +162,7 @@ impl ArgumentsBuilder {
 }
 
 fn replace_self_type(self_type: &mut Type) {
-    match &mut *self_type {
+    match self_type {
         Type::Path(path) => replace_last_path_segment(&mut path.path),
         unsupported_self_ty => {
             let self_ty_verbatim = quote! { #unsupported_self_ty };
