@@ -36,7 +36,8 @@ use quote::quote;
 use std::collections::HashSet;
 use syn::{
     parse::Parser, parse_macro_input, parse_quote, punctuated::Punctuated, visit_mut::VisitMut,
-    ImplItem, ImplItemFn, ItemImpl, Meta, Token, Type, WhereClause, WherePredicate,
+    GenericParam, Generics, ImplItem, ImplItemFn, ItemImpl, Meta, Token, Type, WhereClause,
+    WherePredicate,
 };
 
 /// Supports the same arguments as [`macro@archive_impl`], but applies to
@@ -87,10 +88,7 @@ pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     // we only need to find and transform certain parts.
     let mut archived_impl = orig_impl.clone();
     replace_self_type(&mut archived_impl.self_ty);
-    transform_where_clause(
-        &impl_args.transform_params,
-        &mut archived_impl.generics.where_clause,
-    );
+    transform_generics(&impl_args.transform_params, &mut archived_impl.generics);
     add_bounds_to_where_clause(
         impl_args.add_bounds,
         &mut archived_impl.generics.where_clause,
@@ -208,13 +206,12 @@ fn augment_method(fn_item: &mut ImplItemFn) -> syn::Result<()> {
         }
     }
     let args = args_builder.build();
-    let method_where = &mut fn_item.sig.generics.where_clause;
-    transform_where_clause(&args.transform_params, method_where);
-    add_bounds_to_where_clause(args.add_bounds, method_where);
+    transform_generics(&args.transform_params, &mut fn_item.sig.generics);
+    add_bounds_to_where_clause(args.add_bounds, &mut fn_item.sig.generics.where_clause);
     Ok(())
 }
 
-fn transform_where_clause(replace_params: &[Ident], clause: &mut Option<WhereClause>) {
+fn transform_generics(replace_params: &[Ident], generics: &mut Generics) {
     struct TypeReplacer<'a> {
         replace_params: &'a [Ident],
         archived_assoc: Ident,
@@ -229,13 +226,44 @@ fn transform_where_clause(replace_params: &[Ident], clause: &mut Option<WhereCla
         }
     }
 
-    let Some(clause) = clause else { return };
+    // We must normalize the generics to put all bounds into the where clause.
+    // For example, we can't change impl<T: ...> to impl<T::Archived: ...>.
+    normalize_generics(generics);
+
+    let Some(where_clause) = &mut generics.where_clause else { return };
 
     TypeReplacer {
         replace_params,
         archived_assoc: Ident::new("Archived", Span::call_site()),
     }
-    .visit_where_clause_mut(clause);
+    .visit_where_clause_mut(where_clause);
+}
+
+fn normalize_generics(generics: &mut Generics) {
+    let mut move_predicates = Vec::<WherePredicate>::new();
+    for param in &mut generics.params {
+        // Maybe a little hacky. All type params with non-empty bounds are also
+        // valid predicates.
+        match param {
+            GenericParam::Type(t_param) => {
+                if !t_param.bounds.is_empty() {
+                    move_predicates.push(parse_quote!(#t_param));
+                    t_param.bounds.clear();
+                }
+            }
+            GenericParam::Lifetime(lt_param) => {
+                if !lt_param.bounds.is_empty() {
+                    move_predicates.push(parse_quote!(#lt_param));
+                    lt_param.bounds.clear();
+                }
+            }
+            _ => (),
+        }
+    }
+    generics
+        .make_where_clause()
+        .predicates
+        .extend(move_predicates);
 }
 
 fn add_bounds_to_where_clause(
