@@ -11,4 +11,5 @@ fn tests() {
     t.pass("test_files/08-nonarchive-generic.rs");
     t.pass("test_files/09-method-bounds.rs");
     t.pass("test_files/10-transform-multiple-params.rs");
+    t.pass("test_files/11-preserve-other-attributes.rs");
 }
