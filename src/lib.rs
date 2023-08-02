@@ -33,6 +33,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
+use std::collections::HashSet;
 use syn::{
     parse::Parser, parse_macro_input, parse_quote, punctuated::Punctuated, visit_mut::VisitMut,
     ImplItem, ImplItemFn, ItemImpl, Meta, Token, Type, WhereClause, WherePredicate,
@@ -73,7 +74,7 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// [`macro@archive_method`].
 #[proc_macro_attribute]
 pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
-    let args = match ImplArguments::parse(args) {
+    let args = match Arguments::parse(args) {
         Ok(a) => a,
         Err(e) => {
             return e.to_compile_error().into();
@@ -90,10 +91,7 @@ pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
         &args.transform_params,
         &mut archived_impl.generics.where_clause,
     );
-    add_bounds_to_where_clause(
-        args.add_impl_bounds,
-        &mut archived_impl.generics.where_clause,
-    );
+    add_bounds_to_where_clause(args.add_bounds, &mut archived_impl.generics.where_clause);
     if let Err(e) = augment_methods(&mut archived_impl.items) {
         return e.to_compile_error().into();
     }
@@ -105,36 +103,58 @@ pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
-struct ImplArguments {
-    add_impl_bounds: Vec<WherePredicate>,
+#[derive(Default)]
+struct Arguments {
+    add_bounds: Vec<WherePredicate>,
     transform_params: Vec<Ident>,
 }
 
-impl ImplArguments {
+impl Arguments {
     fn parse(args: TokenStream) -> syn::Result<Self> {
-        let mut add_impl_bounds = Vec::new();
-        let mut transform_params = Vec::new();
+        let mut builder = ArgumentsBuilder::default();
+        builder.try_add_metas_token_stream(args)?;
+        Ok(builder.build())
+    }
+}
+
+#[derive(Default)]
+struct ArgumentsBuilder {
+    add_bounds: Vec<WherePredicate>,
+    transform_params: HashSet<Ident>,
+}
+
+impl ArgumentsBuilder {
+    fn try_add_metas_token_stream(&mut self, args: TokenStream) -> syn::Result<()> {
         if !args.is_empty() {
             let mut arg_metas = Vec::new();
             parse_argument_metas(args, &mut arg_metas)?;
             for meta in arg_metas {
-                if meta.path().is_ident("transform_bounds") {
-                    parse_transform_bounds(&meta, &mut transform_params)?;
-                } else if meta.path().is_ident("bounds") {
-                    parse_bounds(&meta, &mut add_impl_bounds)?;
-                } else {
-                    let meta_path = meta.path().get_ident().unwrap();
-                    panic!("Unsupported argument `{meta_path}`");
-                }
-            }
-            for param in &transform_params {
-                add_impl_bounds.push(parse_quote! { #param: Archive });
+                self.try_add_meta(meta)?;
             }
         }
-        Ok(Self {
-            add_impl_bounds,
-            transform_params,
-        })
+        Ok(())
+    }
+
+    fn try_add_meta(&mut self, meta: Meta) -> syn::Result<()> {
+        if meta.path().is_ident("transform_bounds") {
+            parse_transform_bounds(&meta, &mut self.transform_params)?;
+        } else if meta.path().is_ident("bounds") {
+            parse_bounds(&meta, &mut self.add_bounds)?;
+        } else {
+            let meta_path = meta.path().get_ident().unwrap();
+            panic!("Unsupported argument `{meta_path}`");
+        }
+        Ok(())
+    }
+
+    fn build(mut self) -> Arguments {
+        for param in &self.transform_params {
+            self.add_bounds.push(parse_quote! { #param: Archive });
+        }
+        Arguments {
+            add_bounds: self.add_bounds,
+            transform_params: self.transform_params.into_iter().collect(),
+        }
     }
 }
 
@@ -166,8 +186,7 @@ fn augment_methods(augmented_items: &mut [ImplItem]) -> syn::Result<()> {
 }
 
 fn augment_method(fn_item: &mut ImplItemFn) -> syn::Result<()> {
-    let mut add_bounds = Vec::new();
-    let mut transform_params = Vec::new();
+    let mut args_builder = ArgumentsBuilder::default();
     for attr in &fn_item.attrs {
         if !attr.path().is_ident("archive_method") {
             continue;
@@ -175,19 +194,7 @@ fn augment_method(fn_item: &mut ImplItemFn) -> syn::Result<()> {
 
         match &attr.meta {
             Meta::List(meta_list) => {
-                let mut arg_metas = Vec::new();
-                parse_argument_metas(meta_list.tokens.clone().into(), &mut arg_metas)?;
-
-                for meta in arg_metas {
-                    if meta.path().is_ident("transform_bounds") {
-                        parse_transform_bounds(&meta, &mut transform_params)?;
-                    } else if meta.path().is_ident("bounds") {
-                        parse_bounds(&meta, &mut add_bounds)?;
-                    } else {
-                        let meta_path = meta.path().get_ident().unwrap();
-                        panic!("Unsupported argument `{meta_path}`");
-                    }
-                }
+                args_builder.try_add_metas_token_stream(meta_list.tokens.clone().into())?;
             }
             unsupported_meta => {
                 let meta_verbatim = quote! { #unsupported_meta };
@@ -197,12 +204,10 @@ fn augment_method(fn_item: &mut ImplItemFn) -> syn::Result<()> {
             }
         }
     }
-    for param in &transform_params {
-        add_bounds.push(parse_quote! { #param: Archive });
-    }
+    let args = args_builder.build();
     let method_where = &mut fn_item.sig.generics.where_clause;
-    transform_where_clause(&transform_params, method_where);
-    add_bounds_to_where_clause(add_bounds, method_where);
+    transform_where_clause(&args.transform_params, method_where);
+    add_bounds_to_where_clause(args.add_bounds, method_where);
     Ok(())
 }
 
@@ -247,7 +252,7 @@ fn parse_argument_metas(args: TokenStream, arg_lists: &mut Vec<Meta>) -> syn::Re
     Ok(())
 }
 
-fn parse_transform_bounds(meta: &Meta, transform_params: &mut Vec<Ident>) -> syn::Result<()> {
+fn parse_transform_bounds(meta: &Meta, transform_params: &mut HashSet<Ident>) -> syn::Result<()> {
     match meta {
         Meta::List(meta_list) => {
             let parser = Punctuated::<Ident, Token![,]>::parse_terminated;
