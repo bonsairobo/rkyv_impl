@@ -226,7 +226,7 @@ impl ArgumentsBuilder {
         if meta.path().is_ident("transform_bounds") {
             parse_transform_bounds(meta, &mut self.transform_params)?;
         } else if meta.path().is_ident("add_bounds") {
-            parse_bounds(meta, &mut self.add_bounds)?;
+            parse_add_bounds(meta, &mut self.add_bounds)?;
         } else {
             let meta_path = meta.path().get_ident().unwrap();
             panic!("Unsupported argument `{meta_path}`");
@@ -383,7 +383,7 @@ fn parse_transform_bounds(meta: &Meta, transform_params: &mut HashSet<Ident>) ->
     }
 }
 
-fn parse_bounds(meta: &Meta, add_bounds: &mut Vec<WherePredicate>) -> syn::Result<()> {
+fn parse_add_bounds(meta: &Meta, add_bounds: &mut Vec<WherePredicate>) -> syn::Result<()> {
     match meta {
         Meta::List(meta_list) => {
             let parser = Punctuated::<WherePredicate, Token![,]>::parse_terminated;
