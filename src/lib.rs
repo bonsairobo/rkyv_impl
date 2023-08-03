@@ -15,8 +15,6 @@
 //!
 //! #[archive_impl(transform_bounds(T))]
 //! impl<T> Foo<T> {
-//!     // Notice that the where clause is transformed so that
-//!     // `T` is replaced with `T::Archived` in the generated `impl`.
 //!     #[archive_method(transform_bounds(T))]
 //!     fn sum<S>(&self) -> S
 //!     where
@@ -27,9 +25,15 @@
 //!     }
 //! }
 //!
-//! fn use_generated_method(foo: &ArchivedFoo<u32>) {
-//!     // Call the generated method!
-//!     let _ = foo.sum::<u32>();
+//! // Notice that the trait bounds are transformed so that
+//! // `T` is replaced with `T::Archived`.
+//! fn call_generated_method<T, S>(foo: &ArchivedFoo<T>)
+//! where
+//!     T: Archive,
+//!     T::Archived: Clone,
+//!     S: Sum<T::Archived>
+//! {
+//!     let _ = foo.sum::<S>();
 //! }
 //! ```
 
