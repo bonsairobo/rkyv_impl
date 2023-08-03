@@ -1,6 +1,6 @@
 [package]
 name = "rkyv_impl"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Duncan Fairbanks <duncanfairbanks6@gmail.com>"]
 edition = "2021"
 license = "MIT/Apache-2.0"
