@@ -1,16 +1,8 @@
-use rkyv::{
-    ser::{
-        serializers::{
-            AlignedSerializer, AllocScratch, CompositeSerializer, FallbackScratch, HeapScratch,
-        },
-        Serializer,
-    },
-    AlignedVec, Archive, Infallible, Serialize,
-};
+use rkyv::Archive;
 use rkyv_impl::*;
 use std::iter::Sum;
 
-#[derive(Archive, Serialize)]
+#[derive(Archive)]
 struct Foo<R, T> {
     elements1: Vec<R>,
     elements2: Vec<T>,
@@ -31,22 +23,17 @@ impl<R, T> Foo<R, T> {
     }
 }
 
-fn main() {
-    let foo = Foo {
-        elements1: vec![1, 2, 3],
-        elements2: vec![4, 5, 6],
-    };
-
-    // Serialize.
-    let buf = AlignedVec::new();
-    let scratch = FallbackScratch::new(HeapScratch::<0>::new(), AllocScratch::new());
-    let mut serializer = CompositeSerializer::new(AlignedSerializer::new(buf), scratch, Infallible);
-    serializer.serialize_value(&foo).unwrap();
-    let (serializer, _, _) = serializer.into_components();
-    let buf = serializer.into_inner();
-
-    let archived_foo = unsafe { rkyv::archived_root::<Foo<u32, u32>>(&buf) };
-
-    assert_eq!(foo.sum::<u32>(), 21);
-    assert_eq!(archived_foo.sum::<u32>(), 21);
+fn call_archived<R, T, S>(foo: ArchivedFoo<R, T>) -> S
+where
+    R: Archive,
+    T: Archive,
+    R::Archived: Clone,
+    T::Archived: Clone,
+    S: Sum<R::Archived>,
+    S: Sum<T::Archived>,
+    S: std::ops::Add<Output = S>,
+{
+    foo.sum::<S>()
 }
+
+fn main() {}

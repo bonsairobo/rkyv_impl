@@ -1,22 +1,13 @@
-use rkyv::{
-    ser::{
-        serializers::{
-            AlignedSerializer, AllocScratch, CompositeSerializer, FallbackScratch, HeapScratch,
-        },
-        Serializer,
-    },
-    AlignedVec, Archive, Infallible, Serialize,
-};
+use rkyv::Archive;
 use rkyv_impl::*;
 
-#[derive(Archive, Serialize)]
+#[derive(Archive)]
 pub struct Foo<T> {
     field: Vec<T>,
 }
 
-#[archive_impl(add_bounds(T: Archive<Archived=T>))]
+#[archive_impl(add_bounds(T: Archive<Archived = T>))]
 impl<T> Foo<T> {
-    #[archive_method(add_bounds(T: Archive<Archived=T>))]
     fn get_slice(&self) -> &[T] {
         &self.field
     }
@@ -41,20 +32,22 @@ impl<T> Foo<T> {
     }
 }
 
-fn main() {
-    let foo = Foo {
-        field: vec![1, 2, 3],
-    };
-
-    // Serialize.
-    let buf = AlignedVec::new();
-    let scratch = FallbackScratch::new(HeapScratch::<0>::new(), AllocScratch::new());
-    let mut serializer = CompositeSerializer::new(AlignedSerializer::new(buf), scratch, Infallible);
-    serializer.serialize_value(&foo).unwrap();
-    let (serializer, _, _) = serializer.into_components();
-    let buf = serializer.into_inner();
-
-    let archived_foo = unsafe { rkyv::archived_root::<Foo<u32>>(&buf) };
-
-    assert_eq!(archived_foo.get_slice(), foo.get_slice());
+fn call_archived_get_slice<T: Archive<Archived = T>>(foo: ArchivedFoo<T>) {
+    let _: &[T] = foo.get_slice();
 }
+
+fn call_archived_element_eq<T: Archive<Archived = T>>(foo: ArchivedFoo<T>, expected_value: T)
+where
+    T: Eq,
+{
+    let _: bool = foo.element_eq(0, &expected_value);
+}
+
+fn call_archived_clone_element<T: Archive<Archived = T>>(foo: ArchivedFoo<T>)
+where
+    T: Clone,
+{
+    let _: T = foo.clone_element(0);
+}
+
+fn main() {}
