@@ -1,3 +1,6 @@
+//! [![Crates.io](https://img.shields.io/crates/v/rkyv_impl.svg)](https://crates.io/crates/rkyv_impl)
+//! [![Docs.rs](https://docs.rs/rkyv_impl/badge.svg)](https://docs.rs/rkyv_impl)
+//!
 //! Implement methods for `Foo` and `ArchivedFoo` in a single `impl` block.
 //!
 //! ```
