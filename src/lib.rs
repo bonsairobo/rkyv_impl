@@ -39,8 +39,8 @@ use quote::quote;
 use std::collections::HashSet;
 use syn::{
     parse::Parser, parse_macro_input, parse_quote, punctuated::Punctuated, visit_mut::VisitMut,
-    GenericParam, Generics, ImplItem, ImplItemFn, ItemImpl, Meta, Token, Type, WhereClause,
-    WherePredicate,
+    GenericParam, Generics, ImplItem, ImplItemFn, ItemImpl, Meta, Token, Type, TypePath,
+    WhereClause, WherePredicate,
 };
 
 /// Supports the same arguments as [`macro@archive_impl`], but applies to
@@ -306,10 +306,18 @@ fn transform_generics(replace_params: &[Ident], generics: &mut Generics) {
         archived_assoc: Ident,
     }
     impl<'a> VisitMut for TypeReplacer<'a> {
-        fn visit_type_path_mut(&mut self, i: &mut syn::TypePath) {
+        fn visit_type_path_mut(&mut self, p: &mut TypePath) {
             for r in self.replace_params {
-                if i.path.is_ident(r) {
-                    i.path.segments.push(self.archived_assoc.clone().into());
+                // Only modify type paths where the first segment matches the
+                // type parameter.
+                if p.path.segments.first().map(|seg| &seg.ident) == Some(r) {
+                    p.path
+                        .segments
+                        .insert(1, self.archived_assoc.clone().into());
+                }
+
+                if let Some(qself) = &mut p.qself {
+                    self.visit_qself_mut(qself);
                 }
             }
         }
