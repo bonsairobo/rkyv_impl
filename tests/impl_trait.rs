@@ -17,8 +17,6 @@ impl<T> GetSlice<T> for Foo<T> {
     }
 }
 
-fn call_archived<T: Archive<Archived = T>>(foo: ArchivedFoo<T>) {
+pub fn call_archived<T: Archive<Archived = T>>(foo: ArchivedFoo<T>) {
     let _: &[T] = foo.get_slice();
 }
-
-fn main() {}

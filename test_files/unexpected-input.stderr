@@ -1,5 +1,5 @@
 error: custom attribute panicked
- --> test_files/04-unexpected-input.rs:7:1
+ --> test_files/unexpected-input.rs:7:1
   |
 7 | #[archive_impl(blah)]
   | ^^^^^^^^^^^^^^^^^^^^^

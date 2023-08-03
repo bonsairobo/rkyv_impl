@@ -17,17 +17,15 @@ impl<T: MakeBar> Foo<T>
 where
     <T as MakeBar>::Bar: Into<u32>,
 {
-    fn get_bar_u32(&self) -> u32 {
+    pub fn get_bar_u32(&self) -> u32 {
         self.field.make_bar().into()
     }
 }
 
-fn call_archived<T: Archive>(foo: ArchivedFoo<T>) -> u32
+pub fn call_archived<T: Archive>(foo: ArchivedFoo<T>) -> u32
 where
     T::Archived: MakeBar,
     <T::Archived as MakeBar>::Bar: Into<u32>,
 {
     foo.get_bar_u32()
 }
-
-fn main() {}

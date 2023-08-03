@@ -8,7 +8,7 @@ pub struct Foo<T> {
 
 #[archive_impl(add_bounds(T: Archive<Archived = T>))]
 impl<T> Foo<T> {
-    fn get_slice(&self) -> &[T] {
+    pub fn get_slice(&self) -> &[T] {
         &self.field
     }
 }

@@ -1,5 +1,5 @@
 error: custom attribute panicked
- --> test_files/07-unsupported-self-type.rs:7:1
+ --> test_files/unsupported-self-type.rs:7:1
   |
 7 | #[archive_impl]
   | ^^^^^^^^^^^^^^^

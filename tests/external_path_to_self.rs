@@ -9,5 +9,3 @@ mod foo {
     #[archive_impl]
     impl super::Foo {}
 }
-
-fn main() {}

@@ -13,5 +13,3 @@ pub struct Foo;
 impl Foo {
     pub fn bar() {}
 }
-
-fn main() {}
