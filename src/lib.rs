@@ -165,7 +165,11 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 ///         &self.data
 ///     }
 /// }
-/// ```
+///
+/// # `omit_bounds`
+///
+/// Removes bounds from the generated `impl`. Takes a list of types, for
+/// example: `omit_bounds(T, [S; 2], &Q)`.
 #[proc_macro_attribute]
 pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let impl_args = match Arguments::parse(args) {
@@ -182,6 +186,10 @@ pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
     let mut archived_impl = orig_impl.clone();
     replace_self_type(&mut archived_impl.self_ty);
     transform_generics(&impl_args.transform_params, &mut archived_impl.generics);
+    remove_bounds_from_where_clause(
+        &impl_args.omit_bounds,
+        &mut archived_impl.generics.where_clause,
+    );
     add_bounds_to_where_clause(
         impl_args.add_bounds,
         &mut archived_impl.generics.where_clause,
@@ -201,6 +209,7 @@ pub fn archive_impl(args: TokenStream, item: TokenStream) -> TokenStream {
 struct Arguments {
     add_bounds: Vec<WherePredicate>,
     transform_params: Vec<Ident>,
+    omit_bounds: Vec<Type>,
 }
 
 impl Arguments {
@@ -215,6 +224,7 @@ impl Arguments {
 struct ArgumentsBuilder {
     add_bounds: Vec<WherePredicate>,
     transform_params: HashSet<Ident>,
+    omit_bounds: HashSet<Type>,
 }
 
 impl ArgumentsBuilder {
@@ -234,6 +244,8 @@ impl ArgumentsBuilder {
             parse_transform_bounds(meta, &mut self.transform_params)?;
         } else if meta.path().is_ident("add_bounds") {
             parse_add_bounds(meta, &mut self.add_bounds)?;
+        } else if meta.path().is_ident("omit_bounds") {
+            parse_omit_bounds(meta, &mut self.omit_bounds)?;
         } else {
             let meta_path = meta.path().get_ident().unwrap();
             panic!("Unsupported argument `{meta_path}`");
@@ -248,6 +260,7 @@ impl ArgumentsBuilder {
         Arguments {
             add_bounds: self.add_bounds,
             transform_params: self.transform_params.into_iter().collect(),
+            omit_bounds: self.omit_bounds.into_iter().collect(),
         }
     }
 }
@@ -378,6 +391,28 @@ fn add_bounds_to_where_clause(
     }
 }
 
+fn remove_bounds_from_where_clause(
+    remove_bounded_types: &[Type],
+    clause: &mut Option<WhereClause>,
+) {
+    let Some(clause) = clause else { return };
+
+    let mut keep_predicates = Vec::new();
+    for pred in &clause.predicates {
+        if let WherePredicate::Type(t_pred) = pred {
+            if remove_bounded_types
+                .iter()
+                .find(|param| **param == t_pred.bounded_ty)
+                .is_none()
+            {
+                keep_predicates.push(pred.clone());
+            }
+        }
+    }
+    clause.predicates.clear();
+    clause.predicates.extend(keep_predicates.into_iter());
+}
+
 fn parse_argument_metas(args: TokenStream, arg_lists: &mut Vec<Meta>) -> syn::Result<()> {
     let parser = Punctuated::<Meta, Token![,]>::parse_terminated;
     arg_lists.extend(parser.parse(args)?.into_iter());
@@ -410,6 +445,20 @@ fn parse_add_bounds(meta: &Meta, add_bounds: &mut Vec<WherePredicate>) -> syn::R
             panic!(
                 "Unsupported `{meta_verbatim}`: meta can only be structured list `add_bounds(...)`"
             );
+        }
+    }
+}
+
+fn parse_omit_bounds(meta: &Meta, omit_types: &mut HashSet<Type>) -> syn::Result<()> {
+    match meta {
+        Meta::List(meta_list) => {
+            let parser = Punctuated::<Type, Token![,]>::parse_terminated;
+            omit_types.extend(parser.parse(meta_list.tokens.clone().into())?.into_iter());
+            Ok(())
+        }
+        unsupported_meta => {
+            let meta_verbatim = quote! { #unsupported_meta };
+            panic!("Unsupported `{meta_verbatim}`: meta can only be structured list `omit_bounds(...)`");
         }
     }
 }
