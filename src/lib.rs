@@ -76,7 +76,9 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// into `T::Archived` in all pre-existing trait bounds on the `impl`. Can take
 /// a list of multiple parameters, like `transform_bounds(T, S)`.
 ///
-/// For example:
+/// ## Example
+///
+/// Given the following usage of `transform_bounds`:
 /// ```
 /// # use rkyv_impl::*;
 /// # use rkyv::Archive;
@@ -94,7 +96,7 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// generates the additional code:
+/// The generated `impl` looks like:
 ///
 /// ```
 /// # use rkyv::Archive;
@@ -120,7 +122,9 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// Adds bounds to the generated `impl`. Takes a list of predicates, for
 /// example: `add_bounds(T: PartialEq, S: Hash)`.
 ///
-/// For example:
+/// ## Example
+///
+/// Given the following usage of `add_bounds`:
 /// ```
 /// # use rkyv_impl::*;
 /// # use rkyv::Archive;
@@ -137,7 +141,7 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// generates the additional code:
+/// The generated `impl` looks like:
 ///
 /// ```
 /// # use rkyv::Archive;
