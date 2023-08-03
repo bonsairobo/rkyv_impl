@@ -80,12 +80,12 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// ```
 /// # use rkyv_impl::*;
 /// # use rkyv::Archive;
-/// # #[derive(Archive)]
-/// # struct Foo<T> {
-/// #     data1: T,
-/// #     data2: T,
-/// # }
-/// #
+/// #[derive(Archive)]
+/// struct Foo<T> {
+///     data1: T,
+///     data2: T,
+/// }
+///
 /// #[archive_impl(transform_bounds(T))]
 /// impl<T: PartialEq> Foo<T> {
 ///     fn data_equal(&self) -> bool {
@@ -124,11 +124,11 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// ```
 /// # use rkyv_impl::*;
 /// # use rkyv::Archive;
-/// # #[derive(Archive)]
-/// # struct Foo<T> {
-/// #     data: Vec<T>,
-/// # }
-/// #
+/// #[derive(Archive)]
+/// struct Foo<T> {
+///     data: Vec<T>,
+/// }
+///
 /// #[archive_impl(add_bounds(T: Archive<Archived=T>))]
 /// impl<T> Foo<T> {
 ///     fn get_slice(&self) -> &[T] {
