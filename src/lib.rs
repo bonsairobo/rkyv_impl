@@ -70,7 +70,7 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// `impl`. To transform or add bounds to specific methods, see
 /// [`macro@archive_method`].
 ///
-/// ### `transform_bounds`
+/// # `transform_bounds`
 ///
 /// For each given parameter `T`, adds a `T: Archive` bound and transforms `T`
 /// into `T::Archived` in all pre-existing trait bounds on the `impl`. Can take
@@ -115,7 +115,7 @@ pub fn archive_method(_: TokenStream, item: TokenStream) -> TokenStream {
 /// }
 /// ```
 ///
-/// ### `add_bounds`
+/// # `add_bounds`
 ///
 /// Adds bounds to the generated `impl`. Takes a list of predicates, for
 /// example: `add_bounds(T: PartialEq, S: Hash)`.
