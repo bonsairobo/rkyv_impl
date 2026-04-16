@@ -331,7 +331,9 @@ fn transform_generics(replace_params: &[Ident], generics: &mut Generics) {
     // For example, we can't change impl<T: ...> to impl<T::Archived: ...>.
     normalize_generics(generics);
 
-    let Some(where_clause) = &mut generics.where_clause else { return };
+    let Some(where_clause) = &mut generics.where_clause else {
+        return;
+    };
 
     TypeReplacer {
         replace_params,
