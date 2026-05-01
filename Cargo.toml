@@ -23,5 +23,5 @@ quote = "1"
 syn = { version = "2", features = ["full", "visit-mut"] }
 
 [dev-dependencies]
-rkyv = "0.7"
+rkyv = "0.8"
 trybuild = { version = "1", features = ["diff"] }
